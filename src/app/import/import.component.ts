@@ -1,0 +1,437 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+
+interface ImageResult {
+  preview: string | ArrayBuffer | null;
+  filename: string;
+  birads: string;
+  report: string;
+  description: string;
+  localization?: string;
+}
+
+@Component({
+  selector: 'app-import',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink],
+  templateUrl: './import.component.html',
+  styles: [`
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+    :host { display: block; font-family: 'Sora', sans-serif; }
+
+    .import-page {
+      position: relative;
+      display: grid;
+      gap: 40px;
+      padding: 20px 0 40px;
+      overflow: hidden;
+    }
+
+    /* ── Blobs (identical to home) ── */
+    .bg-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      animation: blobDrift 18s ease-in-out infinite alternate;
+    }
+    .blob-1 { width: 520px; height: 520px; background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%); top: -140px; left: -160px; animation-duration: 20s; }
+    .blob-2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 70%); top: 200px; right: -120px; animation-duration: 24s; }
+    .blob-3 { width: 320px; height: 320px; background: radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%); bottom: 60px; left: 30%; animation-duration: 16s; }
+    @keyframes blobDrift { from { transform: translate(0,0) scale(1); } to { transform: translate(24px,18px) scale(1.06); } }
+
+    /* ── Header ── */
+    .page-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .btn-back {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #a5b4fc;
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid rgba(99,102,241,0.30);
+      margin-top: 8px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 8px 24px rgba(15,23,42,0.18);
+    }
+    .btn-back:hover { transform: translateX(-3px); box-shadow: 0 12px 30px rgba(15,23,42,0.28); }
+
+    .header-meta { display: grid; gap: 14px; }
+
+    .card-badge {
+      display: inline-flex;
+      width: fit-content;
+      background: rgba(99,102,241,0.12);
+      color: #6366f1;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(99,102,241,0.25);
+    }
+
+    .page-header h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 4vw, 3.6rem);
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+    }
+    .page-header .accent {
+      background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .page-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 1rem;
+      line-height: 1.75;
+      font-weight: 300;
+      max-width: 560px;
+    }
+
+    /* ── Upload section ── */
+    .upload-section {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 16px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .required-star { color: #e53e3e; margin-left: 2px; }
+
+    .upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .upload-card {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #1a1f35 100%);
+      border-radius: 28px;
+      border: 1px solid rgba(99,102,241,0.20);
+      box-shadow: 0 24px 48px rgba(15,23,42,0.18), 0 0 0 1px rgba(255,255,255,0.04) inset;
+      overflow: hidden;
+      transition: transform 0.24s ease, box-shadow 0.24s ease;
+    }
+    .upload-card:hover { transform: translateY(-3px); box-shadow: 0 32px 64px rgba(15,23,42,0.28); }
+    .upload-card.has-image { border-color: rgba(99,102,241,0.45); }
+
+    .upload-card-inner {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+    }
+    .upload-card-inner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 80% 10%, rgba(99,102,241,0.14) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .view-tag {
+      display: inline-flex;
+      width: fit-content;
+      background: rgba(99,102,241,0.18);
+      color: #a5b4fc;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(99,102,241,0.30);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .preview-area {
+      min-height: 220px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(99,102,241,0.25);
+      background: rgba(99,102,241,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preview-area img { width: 100%; height: 100%; object-fit: contain; }
+
+    .empty-state {
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border-radius: 16px;
+      border: 1.5px dashed rgba(99,102,241,0.25);
+      color: #475569;
+      font-size: 0.88rem;
+      font-weight: 300;
+    }
+    .empty-icon svg {
+      width: 36px; height: 36px;
+      color: rgba(99,102,241,0.4);
+    }
+
+    .file-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+      color: white;
+      border-radius: 999px;
+      padding: 12px 22px;
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      width: fit-content;
+      box-shadow: 0 8px 20px rgba(99,102,241,0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      max-width: 100%;
+    }
+    .file-button svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .file-button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+    .file-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+    .file-button:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(99,102,241,0.45); filter: brightness(1.08); }
+
+    /* ── Patient card (dark, like analysis-card) ── */
+    .patient-card {
+      position: relative;
+      z-index: 1;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #1a1f35 100%);
+      border-radius: 32px;
+      padding: 52px;
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 52px;
+      align-items: center;
+      box-shadow: 0 32px 64px rgba(15,23,42,0.22), 0 0 0 1px rgba(255,255,255,0.06) inset;
+      animation: fadeUp 0.6s 0.2s ease both;
+      overflow: hidden;
+    }
+    .patient-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 80% 20%, rgba(99,102,241,0.18) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .patient-card-left { display: grid; gap: 18px; position: relative; z-index: 1; }
+    .patient-card-left .card-badge {
+      background: rgba(99,102,241,0.18);
+      color: #a5b4fc;
+      border-color: rgba(99,102,241,0.30);
+    }
+    .patient-card-left h2 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 800;
+      color: #f8fafc;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .patient-card-left p {
+      margin: 0;
+      color: #94a3b8;
+      line-height: 1.8;
+      font-size: 0.93rem;
+      font-weight: 300;
+    }
+
+    .patient-form {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 16px;
+    }
+
+    .field-group { display: grid; gap: 8px; }
+    .field-group label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .field-group input {
+      width: 100%;
+      padding: 14px 18px;
+      border: 1px solid rgba(99,102,241,0.20);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      color: #f8fafc;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .field-group input::placeholder { color: #475569; }
+    .field-group input:focus {
+      outline: none;
+      border-color: rgba(99,102,241,0.55);
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+    }
+    .field-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.4); }
+
+    /* ── Actions ── */
+    .actions-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+      color: white;
+      border: none;
+      border-radius: 999px;
+      padding: 15px 30px;
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.40);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+    }
+    .btn-primary svg { width: 18px; height: 18px; }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(99,102,241,0.50); filter: brightness(1.08); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      padding: 15px 26px;
+      border: 1px solid rgba(15,23,42,0.15);
+      border-radius: 999px;
+      background: white;
+      color: #0f172a;
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-secondary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15,23,42,0.10); }
+
+    .helper-text {
+      color: #64748b;
+      font-size: 0.88rem;
+      font-weight: 300;
+      border-left: 3px solid #6366f1;
+      padding-left: 12px;
+      margin-left: 4px;
+    }
+
+    .error {
+      position: relative;
+      z-index: 1;
+      color: #b91c1c;
+      font-weight: 700;
+      font-size: 0.93rem;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 860px) {
+      .patient-card { grid-template-columns: 1fr; padding: 32px 28px; gap: 28px; }
+      .upload-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; gap: 16px; }
+    }
+  `]
+})
+export class ImportComponent {
+  constructor(private router: Router) {}
+
+  patient = { name: '', age: null as number | null, examDate: '' };
+  imageMLO: ImageResult = { preview: null, filename: '', birads: '', report: '', description: '' };
+  imageCC: ImageResult = { preview: null, filename: '', birads: '', report: '', description: '' };
+  analysisError = '';
+
+  onFileSelected(event: Event, view: 'MLO' | 'CC') {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image: ImageResult = { preview: reader.result, filename: file.name, birads: '', report: '', description: '' };
+      if (view === 'MLO') this.imageMLO = image;
+      else this.imageCC = image;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  analyze() {
+    if (!this.imageMLO.filename || !this.imageCC.filename || !this.imageMLO.preview || !this.imageCC.preview) {
+      this.analysisError = 'Veuillez importer les deux images (MLO et CC) avant l\'analyse.';
+      return;
+    }
+    if (!this.patient.name || !this.patient.age || !this.patient.examDate) {
+      this.analysisError = 'Veuillez remplir tous les champs patients obligatoires.';
+      return;
+    }
+    this.analysisError = '';
+    this.imageMLO.birads = '4A';
+    this.imageMLO.report = 'Masse suspecte en MLO, contours irréguliers et densité élevée.';
+    this.imageMLO.description = 'Masse irrégulière, marges spiculées';
+    this.imageMLO.localization = 'Quadrant supéro-externe gauche';
+    this.imageCC.birads = '4A';
+    this.imageCC.report = 'Asymétrie en CC, calcifications bénignes possibles.';
+    this.imageCC.description = 'Masse irrégulière, marges spiculées';
+    this.imageCC.localization = 'Quadrant inféro-interne';
+    this.router.navigate(['/report'], {
+      state: { patient: this.patient, imageMLO: { ...this.imageMLO }, imageCC: { ...this.imageCC }, globalBirads: '4' }
+    });
+  }
+
+  reset() {
+    this.patient = { name: '', age: null, examDate: '' };
+    this.imageMLO = { preview: null, filename: '', birads: '', report: '', description: '' };
+    this.imageCC = { preview: null, filename: '', birads: '', report: '', description: '' };
+    this.analysisError = '';
+  }
+}

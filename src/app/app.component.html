@@ -1,0 +1,120 @@
+<div class="container">
+  <header class="top-header">
+    <div class="brand-badge">
+      <div class="brand-icon">💙</div>
+      <span>Diagnostic mammographique</span>
+    </div>
+    <h1>Diagnostic Mammographique</h1>
+    <p>Système d’aide au diagnostic basé sur l’intelligence artificielle pour l’analyse d’images mammographiques.</p>
+  </header>
+
+  <section class="main-card" *ngIf="step === 'welcome'">
+    <div class="main-card-inner" (click)="startUpload()" role="button" tabindex="0">
+      <div class="card-icon">📄</div>
+      <h2>Nouvelle Analyse</h2>
+      <p>Importez les vues mammographiques MLO (Médio-Latérale Oblique) et CC (Cranio-Caudale), puis lancez l’analyse automatique pour obtenir un rapport détaillé avec classification BI-RADS.</p>
+      <button class="primary">Importer des images</button>
+    </div>
+  </section>
+
+  <section class="notice-card" *ngIf="step === 'welcome'">
+    <div class="notice-icon">⚠️</div>
+    <div>
+      <h3>Notice Importante</h3>
+      <p>Ce système est un outil d’aide au diagnostic et ne remplace pas l’expertise médicale. Tous les rapports générés doivent être validés par un radiologue qualifié avant transmission au patient. L’interprétation finale et la décision clinique restent sous la responsabilité du médecin.</p>
+    </div>
+  </section>
+
+  <section class="upload-grid" *ngIf="step !== 'welcome'">
+    <div class="upload-card">
+      <h3>Image MLO</h3>
+      <div class="preview" *ngIf="imageMLO.preview; else emptyMLO">
+        <img [src]="imageMLO.preview" alt="MLO preview" />
+      </div>
+      <ng-template #emptyMLO>
+        <div class="empty-state">Sélectionnez une image MLO</div>
+      </ng-template>
+      <input type="file" accept="image/*" (change)="onFileSelected($event, 'MLO')" />
+      <p *ngIf="imageMLO.filename">Fichier : {{ imageMLO.filename }}</p>
+    </div>
+
+    <div class="upload-card">
+      <h3>Image CC</h3>
+      <div class="preview" *ngIf="imageCC.preview; else emptyCC">
+        <img [src]="imageCC.preview" alt="CC preview" />
+      </div>
+      <ng-template #emptyCC>
+        <div class="empty-state">Sélectionnez une image CC</div>
+      </ng-template>
+      <input type="file" accept="image/*" (change)="onFileSelected($event, 'CC')" />
+      <p *ngIf="imageCC.filename">Fichier : {{ imageCC.filename }}</p>
+    </div>
+  </section>
+
+  <section class="patient-card" *ngIf="step !== 'welcome'">
+    <h2>Données patient</h2>
+    <div class="field-row">
+      <label>Nom du patient</label>
+      <input type="text" [(ngModel)]="patient.name" placeholder="Entrez le nom" />
+    </div>
+    <div class="field-row">
+      <label>Âge</label>
+      <input type="number" [(ngModel)]="patient.age" placeholder="Âge" />
+    </div>
+    <div class="field-row">
+      <label>Date de l’examen</label>
+      <input type="date" [(ngModel)]="patient.examDate" />
+    </div>
+  </section>
+
+  <div class="actions" *ngIf="step !== 'welcome'">
+    <button class="primary" [disabled]="!imageMLO.filename || !imageCC.filename" (click)="analyze()">Lancer l’analyse</button>
+    <button class="secondary" (click)="reset()">Réinitialiser</button>
+  </div>
+
+  <div class="error" *ngIf="analysisError">{{ analysisError }}</div>
+
+  <section class="result-section" *ngIf="step === 'results'">
+    <h2>Résultats mock</h2>
+
+    <div class="result-grid">
+      <div class="result-card">
+        <h3>MLO</h3>
+        <p><strong>BI-RADS :</strong> {{ imageMLO.birads }}</p>
+        <p><strong>Rapport :</strong> {{ imageMLO.report }}</p>
+        <p><strong>Résumé :</strong> {{ imageMLO.description }}</p>
+      </div>
+
+      <div class="result-card">
+        <h3>CC</h3>
+        <p><strong>BI-RADS :</strong> {{ imageCC.birads }}</p>
+        <p><strong>Rapport :</strong> {{ imageCC.report }}</p>
+        <p><strong>Résumé :</strong> {{ imageCC.description }}</p>
+      </div>
+    </div>
+
+    <div class="report-card">
+      <h3>Rapport global généré</h3>
+      <p>{{ reportText }}</p>
+    </div>
+  </section>
+
+  <section class="mock-panel" *ngIf="step !== 'welcome' && !analysisStarted">
+    <h2>Données de démonstration</h2>
+    <p>Les résultats affichés ici sont mock et prêts à être remplacés par votre backend CLIP.</p>
+    <div class="mock-list">
+      <div class="mock-item">
+        <strong>BI-RADS 4A</strong>
+        <span>Masse suspecte, contours irréguliers.</span>
+      </div>
+      <div class="mock-item">
+        <strong>BI-RADS 3</strong>
+        <span>Asymétrie modérée, suivi recommandé.</span>
+      </div>
+      <div class="mock-item">
+        <strong>BI-RADS 2</strong>
+        <span>Aspect bénin probable.</span>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,126 @@
+ <section class="import-page">
+
+      <!-- Ambient blobs (same as home) -->
+      <div class="bg-blob blob-1"></div>
+      <div class="bg-blob blob-2"></div>
+      <div class="bg-blob blob-3"></div>
+
+      <!-- Header -->
+      <div class="page-header">
+        <a routerLink="/" class="btn-back" aria-label="Retour">←</a>
+        <div class="header-meta">
+          <div class="card-badge">Nouvelle analyse</div>
+          <h1>Importer vos vues<br><span class="accent">mammographiques</span></h1>
+          <p>Chargez les images MLO et CC, complétez les informations patient, puis laissez l'IA générer un rapport BI-RADS instantané.</p>
+        </div>
+      </div>
+
+      <!-- Upload Grid -->
+      <div class="upload-section">
+        <div class="section-label">Vues mammographiques <span class="required-star">*</span></div>
+        <div class="upload-grid">
+
+          <div class="upload-card" [class.has-image]="imageMLO.preview">
+            <div class="upload-card-inner">
+              <div class="view-tag">MLO</div>
+              <div class="preview-area" *ngIf="imageMLO.preview; else emptyMLO">
+                <img [src]="imageMLO.preview" alt="MLO preview" />
+              </div>
+              <ng-template #emptyMLO>
+                <div class="empty-state">
+                  <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="3"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <path d="m21 15-5-5L5 21"/>
+                    </svg>
+                  </div>
+                  <span>Aucune image MLO</span>
+                </div>
+              </ng-template>
+              <label class="file-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>{{ imageMLO.filename || 'Choisir un fichier' }}</span>
+                <input type="file" accept="image/*" (change)="onFileSelected($event, 'MLO')" />
+              </label>
+            </div>
+          </div>
+
+          <div class="upload-card" [class.has-image]="imageCC.preview">
+            <div class="upload-card-inner">
+              <div class="view-tag">CC</div>
+              <div class="preview-area" *ngIf="imageCC.preview; else emptyCC">
+                <img [src]="imageCC.preview" alt="CC preview" />
+              </div>
+              <ng-template #emptyCC>
+                <div class="empty-state">
+                  <div class="empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="3" width="18" height="18" rx="3"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <path d="m21 15-5-5L5 21"/>
+                    </svg>
+                  </div>
+                  <span>Aucune image CC</span>
+                </div>
+              </ng-template>
+              <label class="file-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>{{ imageCC.filename || 'Choisir un fichier' }}</span>
+                <input type="file" accept="image/*" (change)="onFileSelected($event, 'CC')" />
+              </label>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Patient Form (dark card like analysis-card) -->
+      <div class="patient-card">
+        <div class="patient-card-left">
+          <div class="card-badge">Informations patient</div>
+          <h2>Détails<br>du patient</h2>
+          <p>Renseignez les champs obligatoires pour associer le rapport au bon dossier clinique.</p>
+        </div>
+        <div class="patient-form">
+          <div class="field-group">
+            <label>Nom complet <span class="required-star">*</span></label>
+            <input type="text" [(ngModel)]="patient.name" placeholder="Nom du patient" />
+          </div>
+          <div class="field-group">
+            <label>Âge <span class="required-star">*</span></label>
+            <input type="number" [(ngModel)]="patient.age" placeholder="Âge" />
+          </div>
+          <div class="field-group">
+            <label>Date d'examen <span class="required-star">*</span></label>
+            <input type="date" [(ngModel)]="patient.examDate" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions-row">
+        <button class="btn-primary" type="button"
+          [disabled]="!imageMLO.preview || !imageCC.preview || !patient.name || !patient.age || !patient.examDate"
+          (click)="analyze()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          Lancer l'analyse
+        </button>
+        <button class="btn-secondary" type="button" (click)="reset()">Réinitialiser</button>
+        <span class="helper-text">Tous les champs <span class="required-star">*</span> sont obligatoires avant l'analyse.</span>
+      </div>
+
+      <div class="error" *ngIf="analysisError">{{ analysisError }}</div>
+
+    </section>
